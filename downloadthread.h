@@ -69,13 +69,23 @@ private:
 	static QString flv_host;
 	static QString flv_app;
 	static QString flv_service_prefix;
+	static QString kouza1;
+	static QString kouza2;
 
 	static QString flvstreamer;
 	static QString ffmpeg;
 	static QString scramble;
 	static QStringList malformed;
+	static QString optional1;
+	static QString optional2;
+	static QString optional3;
+	static QString optional4;
+
+	static QString english_3month;
+	static QString english_vr;
 
 	static QHash<QString, QString> ffmpegHash;
+	static QHash<QString, QString> ffmpegHash1;
 	static QHash<QProcess::ProcessError, QString>processError;
 
 };

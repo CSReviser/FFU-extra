@@ -54,6 +54,14 @@ public:
 	static QString scramble;
 	static QString scrambleUrl1;
 	static QString scrambleUrl2;
+	static QString optional1;
+	static QString optional2;
+	static QString optional3;
+	static QString optional4;
+	static QString opt_title1;
+	static QString opt_title2;
+	static QString opt_title3;
+	static QString opt_title4;
 
 protected:
 	virtual void closeEvent( QCloseEvent *event );

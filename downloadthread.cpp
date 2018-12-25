@@ -68,19 +68,31 @@ QString DownloadThread::suffix = "listdataflv.xml";
 QString DownloadThread::flv_host = "flv.nhk.or.jp";
 QString DownloadThread::flv_app = "ondemand/";
 QString DownloadThread::flv_service_prefix = "mp4:flv/gogaku/streaming/mp4/";
+QString DownloadThread::kouza1 = "/kouza";
+QString DownloadThread::kouza2 = "/kouza2";
 
 QString DownloadThread::flvstreamer;
 QString DownloadThread::ffmpeg;
 QString DownloadThread::scramble;
+QString DownloadThread::optional1;
+QString DownloadThread::optional2;
+QString DownloadThread::optional3;
+QString DownloadThread::optional4;
+
 QStringList DownloadThread::malformed = (QStringList() << "3g2" << "3gp" << "m4a" << "mov");
 
+QString DownloadThread::english_3month = QString::fromUtf8( "短期集中！3か月英会話" );
+QString DownloadThread::english_vr = QString::fromUtf8( "ボキャブライダー" );
+
 QHash<QString, QString> DownloadThread::ffmpegHash;
+QHash<QString, QString> DownloadThread::ffmpegHash1;
 QHash<QProcess::ProcessError, QString> DownloadThread::processError;
 
 //--------------------------------------------------------------------------------
 
 DownloadThread::DownloadThread( Ui::MainWindowClass* ui ) : isCanceled(false), failed1935(false) {
 	this->ui = ui;
+
 	if ( ffmpegHash.empty() ) {
 		ffmpegHash["3g2"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/mp4/%2/master.m3u8 -vn -bsf aac_adtstoasc -acodec copy \"%3\"";
 		ffmpegHash["3gp"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/mp4/%2/master.m3u8 -vn -bsf aac_adtstoasc -acodec copy \"%3\"";
@@ -93,6 +105,21 @@ DownloadThread::DownloadThread( Ui::MainWindowClass* ui ) : isCanceled(false), f
 		ffmpegHash["mp3"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/mp4/%2/master.m3u8 -id3v2_version 3 -metadata title=\"%4\" -metadata artist=\"NHK\" -metadata album=\"%5\" -metadata date=\"%6\" -metadata genre=\"Speech\" -vn -acodec libmp3lame \"%3\"";
 		ffmpegHash["ts"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/mp4/%2/master.m3u8 -vn -acodec copy \"%3\"";
 	}
+
+	if ( ffmpegHash1.empty() ) {
+		ffmpegHash1["3g2"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -vn -bsf aac_adtstoasc -acodec copy \"%3\"";
+		ffmpegHash1["3gp"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -vn -bsf aac_adtstoasc -acodec copy \"%3\"";
+		ffmpegHash1["aac"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -vn -acodec copy \"%3\"";
+		ffmpegHash1["avi"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -id3v2_version 3 -metadata title=\"%4\" -metadata artist=\"NHK\" -metadata album=\"%5\" -metadata date=\"%6\" -metadata genre=\"Speech\" -vn -acodec copy \"%3\"";
+		ffmpegHash1["m4a"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -id3v2_version 3 -metadata title=\"%4\" -metadata artist=\"NHK\" -metadata album=\"%5\" -metadata date=\"%6\" -metadata genre=\"Speech\" -vn -bsf aac_adtstoasc -acodec copy \"%3\"";
+		ffmpegHash1["mka"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -id3v2_version 3 -metadata title=\"%4\" -metadata artist=\"NHK\" -metadata album=\"%5\" -metadata date=\"%6\" -metadata genre=\"Speech\" -vn -acodec copy \"%3\"";
+		ffmpegHash1["mkv"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -id3v2_version 3 -metadata title=\"%4\" -metadata artist=\"NHK\" -metadata album=\"%5\" -metadata date=\"%6\" -metadata genre=\"Speech\" -vn -acodec copy \"%3\"";
+		ffmpegHash1["mov"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -id3v2_version 3 -metadata title=\"%4\" -metadata artist=\"NHK\" -metadata album=\"%5\" -metadata date=\"%6\" -metadata genre=\"Speech\" -vn -bsf aac_adtstoasc -acodec copy \"%3\"";
+		ffmpegHash1["mp3"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -id3v2_version 3 -metadata title=\"%4\" -metadata artist=\"NHK\" -metadata album=\"%5\" -metadata date=\"%6\" -metadata genre=\"Speech\" -vn -acodec libmp3lame \"%3\"";
+		ffmpegHash1["ts"] = "\"%1\" -y -i https://nhk-vh.akamaihd.net/i/gogaku-stream/r/%2/master.m3u8 -vn -acodec copy \"%3\"";
+	}
+
+
 	if ( processError.empty() ) {
 		processError[QProcess::FailedToStart] = "FailedToStart";
 		processError[QProcess::Crashed] = "Crashed";
@@ -457,7 +484,8 @@ QString DownloadThread::formatName( QString format, QString kouza, QString hdate
 	int month = hdate.left( 2 ).toInt();
 	int year = 2000 + file.left( 2 ).toInt();
 	if ( month <= 4 && QDate::currentDate().year() > year )
-		year += 1;
+		if ( !QString::compare(  kouza , english_vr ) == 0 ) year += 1;
+		if ( QString::compare(  kouza , english_vr ) == 0 && month < 4 ) year += 1;
 	int day = hdate.mid( 3, 2 ).toInt();
 
 	if ( file.right( 4 ) == ".flv" )
@@ -528,18 +556,51 @@ bool DownloadThread::captureStream( QString kouza, QString hdate, QString file )
 
 	int month = hdate.left( 2 ).toInt();
 	int year = 2000 + file.left( 2 ).toInt();
+	int year1 = 2000 + file.left( 2 ).toInt();
 	if ( month <= 4 && QDate::currentDate().year() > year )
-		year += 1;
+		if ( !QString::compare(  kouza , english_vr ) == 0 ) year += 1;
+		if ( QString::compare(  kouza , english_vr ) == 0 && month < 4 ) year += 1;
 	int day = hdate.mid( 3, 2 ).toInt();
 	QDate onair( year, month, day );
 	QString yyyymmdd = onair.toString( "yyyy_MM_dd" );
-	
+
+
+	if ( QString::compare(  kouza , english_vr ) ==0 ){
+	QDate d1;
+	d1.setDate(QDate::currentDate().year(),QDate::currentDate().month(),QDate::currentDate().day());
+	int d2 = d1.dayOfWeek();
+
+	if ( !ui->toolButton_vrradio1->isChecked() ){
+		if ( d2 > 3 ) {
+		if ( onair.daysTo(QDate::currentDate())-d2 > 0 ) return false;
+		if ( onair.daysTo(QDate::currentDate())-d2 < -14 ) return false;
+		} else {
+		if ( onair.daysTo(QDate::currentDate())-d2 > 0 ) return false;
+		if ( onair.daysTo(QDate::currentDate())-d2 < -7 ) return false;
+		}
+//		if ( onair.daysTo(QDate::currentDate())-d2 > 7 ) return false;
+//		if ( onair.daysTo(QDate::currentDate())-d2 < 0 ) return false;
+	} else {
+		if ( ui->toolButton_vrradio2->isChecked() ){
+			if ( QDate::currentDate().year() > year1 ) return false;
+		}
+		if ( d2 > 3 ) {
+		if ( onair.daysTo(QDate::currentDate())-d2 < -14 ) return false;
+		} else {
+		if ( onair.daysTo(QDate::currentDate())-d2 < -7 ) return false;
+	}}
+	}
+
+
 	if ( ui->toolButton_skip->isChecked() && QFile::exists( outputDir + outFileName ) ) {
 		emit current( QString::fromUtf8( "スキップ：　　　　　" ) + kouza + QString::fromUtf8( "　" ) + yyyymmdd );
 		return true;
 	}
 	emit current( QString::fromUtf8( "ダウンロード中：　　" ) + kouza + QString::fromUtf8( "　" ) + yyyymmdd );
 	
+	if ( QString::compare(  kouza, english_3month ) == 0 )
+	Q_ASSERT( ffmpegHash1.contains( extension ) );
+	else 
 	Q_ASSERT( ffmpegHash.contains( extension ) );
 	QString dstPath;
 #ifdef QT4_QT5_WIN
@@ -558,10 +619,16 @@ bool DownloadThread::captureStream( QString kouza, QString hdate, QString file )
 #endif
 	QString commandFfmpeg = ffmpegHash[extension]
 			.arg( ffmpeg, file, dstPath, id3tagTitle, kouza, QString::number( year ) );
+	if ( QString::compare(  kouza, english_3month ) == 0 )
+	commandFfmpeg = ffmpegHash1[extension]
+			.arg( ffmpeg, file, dstPath, id3tagTitle, kouza, QString::number( year ) );
+
+	
 	//qDebug() << commandFfmpeg;
 	//DebugLog( commandFfmpeg );
 	QProcess process;
 	process.start( commandFfmpeg );
+	
 	if ( !process.waitForStarted( -1 ) ) {
 		emit critical( QString::fromUtf8( "ffmpeg起動エラー(%3)：　%1　　%2" )
 				.arg( kouza, yyyymmdd,  processError[process.error()] ) );
@@ -601,24 +668,30 @@ bool DownloadThread::captureStream( QString kouza, QString hdate, QString file )
 }
 
 QString DownloadThread::paths[] = {
-	"english/basic1", "english/basic2", "english/basic3",
-	"english/timetrial", "english/kaiwa", "english/business1",
-	"english/business2", "english/kouryaku", "english/yomu",
-	"english/enjoy",
-	"chinese/kouza", "chinese/levelup", "french/kouza",
-	"italian/kouza", "hangeul/kouza","hangeul/levelup",
-	"german/kouza", "spanish/kouza","russian/kouza"
+	"english/basic0", "english/basic1", "english/basic2", "english/basic3",
+	"english/timetrial", "english/gendai", "english/kaiwa", "english/gakusyu",
+	"english/business1", "english/business2",  
+	"english/enjoy", "english/vr-radio",
+	"french/kouza", "french/kouza2", "german/kouza", "german/kouza2",
+	"spanish/kouza", "spanish/kouza2", "italian/kouza", "italian/kouza2",
+	"russian/kouza", "russian/kouza2", "hangeul/kouza", "hangeul/levelup", "hangeul/omotenashi",
+	"chinese/kouza", "chinese/levelup", "chinese/omotenashi",
+	"optional1", "optional2", "optional3", "optional4"		
 };
 
 void DownloadThread::run() {
 	QAbstractButton* checkbox[] = {
-		ui->toolButton_basic1, ui->toolButton_basic2, ui->toolButton_basic3,
-		ui->toolButton_timetrial, ui->toolButton_kaiwa, ui->toolButton_business1,
-		ui->toolButton_business2, ui->toolButton_kouryaku, ui->toolButton_yomu,
-		ui->toolButton_enjoy,
-		ui->toolButton_chinese, ui->toolButton_levelup_chinese, ui->toolButton_french,
-		ui->toolButton_italian, ui->toolButton_hangeul, ui->toolButton_levelup_hangeul,
-		ui->toolButton_german, ui->toolButton_spanish, ui->toolButton_russian,
+		ui->toolButton_basic0, ui->toolButton_basic1, ui->toolButton_basic2, ui->toolButton_basic3,
+		ui->toolButton_timetrial, ui->toolButton_gendai, ui->toolButton_kaiwa, ui->toolButton_gakusyu,
+		ui->toolButton_business1, ui->toolButton_business2,
+		ui->toolButton_enjoy, ui->toolButton_vrradio,
+		ui->toolButton_french, ui->toolButton_french2, ui->toolButton_german, ui->toolButton_german2,
+		ui->toolButton_spanish, ui->toolButton_spanish2, ui->toolButton_italian, ui->toolButton_italian2,
+		ui->toolButton_russian, ui->toolButton_russian2, ui->toolButton_hangeul, ui->toolButton_levelup_hangeul,
+		ui->toolButton_omotenashino_hangeul,
+		ui->toolButton_chinese, ui->toolButton_levelup_chinese, ui->toolButton_omotenashino_chinese, 
+		ui->toolButton_optional1, ui->toolButton_optional2, 
+		ui->toolButton_optional3, ui->toolButton_optional4, 
 		NULL
 	};
 
@@ -630,6 +703,16 @@ void DownloadThread::run() {
 	//emit information( QString::fromUtf8( "----------------------------------------" ) );
 
 	for ( int i = 0; checkbox[i] && !isCanceled; i++ ) {
+
+		QString optional1 = MainWindow::optional1;
+		QString optional2 = MainWindow::optional2;
+		QString optional3 = MainWindow::optional3;
+		QString optional4 = MainWindow::optional4;
+		if ( paths[i].startsWith("optional1") ) paths[i] = optional1;
+		if ( paths[i].startsWith("optional2") ) paths[i] = optional2;
+		if ( paths[i].startsWith("optional3") ) paths[i] = optional3;
+		if ( paths[i].startsWith("optional4") ) paths[i] = optional4;
+
 		if ( checkbox[i]->isChecked() ) {
 			QStringList fileList = getAttribute( prefix + paths[i] + "/" + suffix, "@file" );
 			QStringList kouzaList = getAttribute( prefix + paths[i] + "/" + suffix, "@kouza" );
