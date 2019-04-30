@@ -869,7 +869,7 @@
           </font>
          </property>
          <property name="text">
-          <string>ボキャブライダー(過去)</string>
+          <string>ボキャブライダー(先週)</string>
          </property>
          <property name="checkable">
           <bool>true</bool>

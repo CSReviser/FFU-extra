@@ -530,7 +530,7 @@ QString DownloadThread::formatName( QString format, QString kouza, QString hdate
 
 //--------------------------------------------------------------------------------
 
-bool DownloadThread::captureStream( QString kouza, QString hdate, QString file ) {
+bool DownloadThread::captureStream( QString kouza, QString hdate, QString file, QString nendo, QString kon_nendo ) {
 	QString outputDir = MainWindow::outputDir + kouza;
 	if ( !checkOutputDir( outputDir ) )
 		return false;
@@ -556,39 +556,42 @@ bool DownloadThread::captureStream( QString kouza, QString hdate, QString file )
 
 	int month = hdate.left( 2 ).toInt();
 	int year = 2000 + file.left( 2 ).toInt();
+	int fiscal_year = QDate::currentDate().year(); 
+		if (QDate::currentDate().month() < 4 ) fiscal_year -= 1;
 	int year1 = 2000 + file.left( 2 ).toInt();
-	if ( month <= 4 && QDate::currentDate().year() > year )
-		if ( !QString::compare(  kouza , english_vr ) == 0 ) year += 1;
-		if ( QString::compare(  kouza , english_vr ) == 0 && month < 4 ) year += 1;
+		if (month < 4 ) year1 -= 1;
+//	if ( month <= 4 && QDate::currentDate().year() > year )
+//		if ( !QString::compare(  kouza , english_vr ) == 0 ) year += 1;
+//		if ( QString::compare(  kouza , english_vr ) == 0 && month < 4 ) year += 1;
 	int day = hdate.mid( 3, 2 ).toInt();
 	QDate onair( year, month, day );
 	QString yyyymmdd = onair.toString( "yyyy_MM_dd" );
 
 
 	if ( QString::compare(  kouza , english_vr ) ==0 ){
-	QDate d1;
-	d1.setDate(QDate::currentDate().year(),QDate::currentDate().month(),QDate::currentDate().day());
-	int d2 = d1.dayOfWeek();
+	QDate today;
+	today.setDate(QDate::currentDate().year(),QDate::currentDate().month(),QDate::currentDate().day());
+	int d2 = today.dayOfWeek();
+	int day2 = onair.daysTo(QDate::currentDate())-today.dayOfWeek();
 
-	if ( !ui->toolButton_vrradio1->isChecked() ){
+	if ( !ui->toolButton_vrradio1->isChecked() && !ui->toolButton_vrradio2->isChecked() ){
 		if ( d2 > 3 ) {
-		if ( onair.daysTo(QDate::currentDate())-d2 > 0 ) return false;
-		if ( onair.daysTo(QDate::currentDate())-d2 < -14 ) return false;
+			if ( day2 > 0 || day2 < -14 ) return false;
 		} else {
-		if ( onair.daysTo(QDate::currentDate())-d2 > 0 ) return false;
-		if ( onair.daysTo(QDate::currentDate())-d2 < -7 ) return false;
+			if ( day2 > 0 || day2 < -7 ) return false;
 		}
-//		if ( onair.daysTo(QDate::currentDate())-d2 > 7 ) return false;
-//		if ( onair.daysTo(QDate::currentDate())-d2 < 0 ) return false;
-	} else {
-		if ( ui->toolButton_vrradio2->isChecked() ){
-			if ( QDate::currentDate().year() > year1 ) return false;
-		}
+	}
+	if ( ui->toolButton_vrradio1->isChecked() && !ui->toolButton_vrradio2->isChecked() ){
+		if ( day2 > 7 || day2 < 0 ) return false;
+	}
+	if ( !ui->toolButton_vrradio1->isChecked() && ui->toolButton_vrradio2->isChecked() ){
+		if ( kon_nendo != nendo ) return false;
 		if ( d2 > 3 ) {
-		if ( onair.daysTo(QDate::currentDate())-d2 < -14 ) return false;
+			if ( day2 < -14 ) return false;
 		} else {
-		if ( onair.daysTo(QDate::currentDate())-d2 < -7 ) return false;
-	}}
+			if ( day2 < -7 ) return false;
+		}
+	}
 	}
 
 
@@ -716,12 +719,14 @@ void DownloadThread::run() {
 		if ( checkbox[i]->isChecked() ) {
 			QStringList fileList = getAttribute( prefix + paths[i] + "/" + suffix, "@file" );
 			QStringList kouzaList = getAttribute( prefix + paths[i] + "/" + suffix, "@kouza" );
+			QStringList nendoList = getAttribute( prefix + paths[i] + "/" + suffix, "@nendo" );
+			QStringList kon_nendoList = getAttribute( prefix + paths[1] + "/" + suffix, "@nendo" );
 			QStringList hdateList = one2two( getAttribute( prefix + paths[i] + "/" + suffix, "@hdate" ) );
 
 			if ( fileList.count() && fileList.count() == kouzaList.count() && fileList.count() == hdateList.count() ) {
 				if ( true /*ui->checkBox_this_week->isChecked()*/ ) {
 					for ( int j = 0; j < fileList.count() && !isCanceled; j++ )
-						captureStream( kouzaList[j], hdateList[j], fileList[j] );
+						captureStream( kouzaList[j], hdateList[j], fileList[j], nendoList[j], kon_nendoList[1] );
 				}
 			}
 		}
